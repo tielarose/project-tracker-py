@@ -31,6 +31,10 @@ def get_student_by_github(github):
 
     db_cursor = db.session.execute(QUERY, {'github': github})
 
+    if is_invalid_student(github):
+        print('Invalid student, please try again')
+        return
+
     row = db_cursor.fetchone()
 
     print(f"Student: {row[0]} {row[1]}\nGitHub account: {row[2]}")
@@ -67,6 +71,10 @@ def get_project_by_title(title):
     WHERE title = :title
     """
 
+    if is_invalid_project_title(title):
+        print('Invalid project title, please try again')
+        return
+
     db_cursor = db.session.execute(QUERY, {'title':title})
 
     row = db_cursor.fetchone()
@@ -84,6 +92,13 @@ def get_grade_by_github_title(github, title):
         WHERE github = :github 
         AND project_title = :title
     """
+
+    if is_invalid_student(github):
+        print('Invalid student, please try again')
+        return
+    elif is_invalid_project_title(title):
+        print('Invalid project title, please try again')
+        return
 
     db_cursor = db.session.execute(QUERY, {'github': github, 'title': title})
 
@@ -133,6 +148,10 @@ def get_all_grades(github):
         WHERE student_github = :github
     """
 
+    if is_invalid_student(github):
+        print('Invalid student, please try again')
+        return
+
     db_cursor = db.session.execute(QUERY, {'github': github})
 
     row = db_cursor.fetchone()
@@ -142,7 +161,36 @@ def get_all_grades(github):
         print(f'{row[2]} Project: {row[3]}/{row[4]}')
         row = db_cursor.fetchone()
 
+def is_invalid_student(github):
+    """Returns True if a student is NOT in the database (ie if the student is invalid)"""
 
+    QUERY = """
+        SELECT *
+        FROM students
+        WHERE github = :github
+    """
+
+    db_cursor = db.session.execute(QUERY, {'github': github})
+
+    return db_cursor.fetchone() == None
+
+def is_invalid_project_title(title):
+    """Returns True if a project is NOT in the database (ie if the project title is invalid)"""
+
+    QUERY = """
+        SELECT *
+        FROM projects
+        WHERE title = :title
+    """
+
+    db_cursor = db.session.execute(QUERY, {'title': title})
+
+    return db_cursor.fetchone() == None
+
+def is_valid_number_of_args(args, num):
+    """Returns True if the number of args passed equals the number expected"""
+
+    return len(args) == num
 
 def handle_input():
     """Main loop.
@@ -160,24 +208,36 @@ def handle_input():
         args = tokens[1:]
 
         if command == "student":
-            github = args[0]
-            get_student_by_github(github)
+            if is_valid_number_of_args(args, 1):
+                github = args[0]
+                get_student_by_github(github)
+            else:
+                print("The 'students' command takes exactly one argument. Please try again.")
 
         elif command == "new_student":
             first_name, last_name, github = args  # unpack!
             make_new_student(first_name, last_name, github)
         
         elif command == "project_info":
-            title = args[0]
-            get_project_by_title(title)
+            if is_valid_number_of_args(args, 1):
+                title = args[0]
+                get_project_by_title(title)
+            else:
+                print("The 'project_info' command takes exactly one argument. Please try again.")
 
         elif command == "get_grade":
-            github, title = args
-            get_grade_by_github_title(github, title)
+            if is_valid_number_of_args(args, 2):
+                github, title = args
+                get_grade_by_github_title(github, title)
+            else:
+                print("The 'get_grade' command takes exactly two arguments. Please try again.")
 
         elif command == "assign_grade":
-            github, title, grade = args
-            assign_grade(github, title, grade)
+            if is_valid_number_of_args(args, 3):
+                github, title, grade = args
+                assign_grade(github, title, grade)
+            else:
+                print("The 'assign_grade' command takes exactly three arguments. Please try again.")
 
         elif command == "add_project":
             title, *description_list, max_grade_str = args
@@ -186,8 +246,11 @@ def handle_input():
             add_project(title, description, max_grade)
 
         elif command == "get_all_grades":
-            github = args[0]
-            get_all_grades(github)
+            if is_valid_number_of_args(args, 1):
+                github = args[0]
+                get_all_grades(github)
+            else:
+                print("The 'get_all_grades' command takes exactly one argument. Please try again.")
 
         else:
             if command != "quit":
