@@ -122,6 +122,27 @@ def add_project(title, description, max_grade):
 
     print(f'Successfully added {title} to the projects database')
 
+def get_all_grades(github):
+    """Given a student's github, print all grades for that student (one line per project/grade)."""
+
+    QUERY = """
+        SELECT first_name, last_name, project_title, grade, max_grade
+        FROM grades
+        JOIN students ON (grades.student_github = students.github)
+        JOIN projects ON (grades.project_title = projects.title)
+        WHERE student_github = :github
+    """
+
+    db_cursor = db.session.execute(QUERY, {'github': github})
+
+    row = db_cursor.fetchone()
+    print(f'All grades for {row[0]} {row[1]:}')
+
+    while row is not None:
+        print(f'{row[2]} Project: {row[3]}/{row[4]}')
+        row = db_cursor.fetchone()
+
+
 
 def handle_input():
     """Main loop.
@@ -163,6 +184,10 @@ def handle_input():
             max_grade = int(max_grade_str)
             description = ' '.join(description_list)
             add_project(title, description, max_grade)
+
+        elif command == "get_all_grades":
+            github = args[0]
+            get_all_grades(github)
 
         else:
             if command != "quit":
